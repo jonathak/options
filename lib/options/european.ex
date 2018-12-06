@@ -4,6 +4,24 @@ defmodule Options.European do
   """
 
   @doc """
+      iex> Options.European.simplecall(100.0, 5, 0.2, 2.0, 0.5, 125.0, 0.05)
+      26.08728501338723
+  """
+  # simplecall/7
+  # valuation of call option given simple parameters
+  # stock price, time granularity, gains up and down, exercize price, risk free rate
+  def simplecall(sp, levels, dt, gu, gd, ex, r) do
+    with fut_stk_prc_dist = spread(sp, levels),
+         fut_cal_prc_dist = Enum.map(fut_stk_prc_dist, &max(0.0, &1 - ex)),
+         combined = Enum.zip(pairs(fut_stk_prc_dist), pairs(fut_cal_prc_dist)) do
+      IO.inspect(fut_stk_prc_dist)
+      IO.inspect(fut_cal_prc_dist)
+      IO.inspect(combined)
+      callnode(combined, gu, gd, r, dt)
+    end
+  end
+
+  @doc """
       iex> Options.European.split(100, 2.0)
       [50.0, 200.0]
   """
@@ -65,18 +83,13 @@ defmodule Options.European do
   def callf([sd, su], ex), do: [max(0, sd - ex), max(0, su - ex)]
 
   @doc """
-      iex> Options.European.bondf([50, 200], [0, 100])
-      50
+      iex> Options.European.bondf([50, 200], [50, 200])
+      0
   """
   # bondf/2
   # bond future value that satisfies hedge position w/o ratio
-  def bondf([sfd, _sfu], [cfd, _cfu]) do
-    if cfd <= 0.0 do
-      sfd
-    else
-      cfd
-    end
-  end
+  def bondf([sfd, _sfu], [cfd, _cfu]), do: sfd - cfd
+
 
   @doc """
       iex> Options.European.hedgef([50, 200], [0, 100])
@@ -201,7 +214,7 @@ defmodule Options.European do
        {[2.0, 8.0], [1.0, 7.0]}]
   """
   # bothsandc/2
-  # combining future stock and futur call distributions 
+  # combining future stock and future call distributions 
   def bothsandc(stockdist, calldist), do: Enum.zip(pairs(stockdist), pairs(calldist))
 
   @doc """
@@ -210,7 +223,7 @@ defmodule Options.European do
       [[0.0, 0.3387882068697759], [0.3387882068697759, 3.0163646206093278]]
   """
   # callcalc/5
-  # derivation call price one layer toward node of binomial tree
+  # calculates call price one layer toward node of binomial tree
   def callcalc(combined, gu, gd, r, dt) do
     combined
     |> Enum.map(&cchelper(&1, gu, gd, r, dt))
@@ -224,6 +237,30 @@ defmodule Options.European do
          cf = elem(pair, 1),
          sp = revsplit(sf, gu, gd) do
       callp(sp, sf, cf, r, dt)
+    end
+  end
+
+  @doc """
+      iex> combined = [{[0.125, 0.5], [0.0, 0.0]}, {[0.5, 2.0], [0.0, 1.0]}, {[0.5, 2.0], [0.0, 1.0]}, {[2.0, 8.0], [1.0, 7.0]}]
+      iex> Options.European.callnode(combined, 2.0, 0.5, 0.05, 0.33)
+      0.6461619195466833
+  """
+  # callnode/5
+  # calculates call value at node of binomial tree
+  def callnode(combined, gu, gd, r, dt) do
+    if length(combined) == 1 do
+      cchelper(hd(combined), gu, gd, r, dt)
+    else
+      with sreduced =
+             Enum.map(combined, &elem(&1, 0))
+             |> Enum.map(&revsplit(&1, gu, gd))
+             |> pairs(),
+           creduced = callcalc(combined, gu, gd, r, dt),
+           rdist = Enum.zip(sreduced, creduced) do
+        IO.inspect(sreduced)
+        IO.inspect(creduced)
+        callnode(rdist, gu, gd, r, dt)
+      end
     end
   end
 
