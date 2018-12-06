@@ -2,8 +2,8 @@ defmodule Options.Main do
   # mostly for debugging and exploration
   def start() do
     tree = spread(1.0, 2)
-	IO.inspect(tree)
-	IO.inspect(pairs(tree))
+    IO.inspect(tree)
+    IO.inspect(pairs(tree))
   end
 
   @doc """
@@ -141,20 +141,20 @@ defmodule Options.Main do
   def spread(s \\ 100.0, n \\ 2) do
     1..n
     |> Enum.reduce(split(s), fn _x, acc -> expand(acc) end)
-	|> List.flatten()
+    |> List.flatten()
   end
-  
+
   @doc """
       iex> [0.125, 0.5, 0.5, 2.0, 0.5, 2.0, 2.0, 8.0] |> Options.Main.pairs()
       [[0.125, 0.5], [0.5, 2.0], [0.5, 2.0], [2.0, 8.0]]
-  """  
-  #splits a future price distribution into ordered pairs
+  """
+  # splits a future price distribution into ordered pairs
   def pairs(dist) do
-	  if length(dist) == 2 do
-		  [dist]
-	  else
-		  [[hd(dist), hd(tl(dist))] | pairs(tl(tl(dist)))]
-	  end
+    if length(dist) == 2 do
+      [dist]
+    else
+      [[hd(dist), hd(tl(dist))] | pairs(tl(tl(dist)))]
+    end
   end
 
   @doc """
@@ -169,13 +169,13 @@ defmodule Options.Main do
       1 + depth(x)
     end
   end
-  
-  #(depreciated)
+
+  # (depreciated)
   def scoop(tree) do
-	  if not is_list(hd(tree)) do
-		  tree
-	  else
-		  scoop(hd(tree))
-	  end
+    if not is_list(hd(tree)) do
+      tree
+    else
+      scoop(hd(tree))
+    end
   end
 end
