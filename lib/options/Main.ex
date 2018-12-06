@@ -22,33 +22,27 @@ defmodule Options.Main do
   """
   # split/3
   # equity (stock) price progression
-  def split(s, gu, gd) do
-    [s * gd, s * gu]
-  end
+  def split(s, gu, gd), do: [s * gd, s * gu]
 
   @doc """
       iex> Options.Main.bondp(100, 0.05, 1.0)
       95.1229424500714
   """
   # pres val of bf bond future
-  def bondp(bf, r, dt) do
-    bf * :math.exp(-r * dt)
-  end
+  def bondp(bf, r, dt), do: bf * :math.exp(-r * dt)
 
   @doc """
       iex> Options.Main.callf([50, 200], 100)
       [0, 100]
   """
   # call future value
-  def callf([sd, su], ex) do
-    [max(0, sd - ex), max(0, su - ex)]
-  end
+  def callf([sd, su], ex), do: [max(0, sd - ex), max(0, su - ex)]
 
   @doc """
       iex> Options.Main.bondf([50, 200], [0, 100])
       50
   """
-  # bond future value that satisfy hedge position w/o ratio
+  # bond future value that satisfies hedge position w/o ratio
   def bondf([sfd, _sfu], [cfd, _cfu]) do
     if cfd <= 0.0 do
       sfd
@@ -73,19 +67,14 @@ defmodule Options.Main do
       1.0
   """
   # pres val hedge portfolio, stock present bond present
-  def hedgep(sp, bp) do
-    sp - bp
-  end
+  def hedgep(sp, bp), do: sp - bp
 
   @doc """
       iex> Options.Main.ratio([1.0, 2.0], [0.0, 1.0])
       2.0
   """
   # hedge future down, up, call etc.
-  def ratio([_hfd, hfu], [_cfd, cfu]) do
-    # may want to also add checks on the down values in future
-    hfu / cfu
-  end
+  def ratio([_hfd, hfu], [_cfd, cfu]), do: hfu / cfu
 
   @doc """
       iex> Options.Main.callp(100, [50, 200], [0, 100], 0.05, 5.0)
@@ -99,7 +88,7 @@ defmodule Options.Main do
          hcr = ratio(hedgef(sf, cf), cf),
          bf = bondf(sf, cf),
          bp = bondp(bf, r, dt) do
-      (sp - bp) / hcr
+      hedgep(sp, bp) / hcr
     end
   end
 
@@ -143,13 +132,43 @@ defmodule Options.Main do
     |> Enum.reduce(split(s), fn _x, acc -> expand(acc) end)
     |> List.flatten()
   end
-
+  
   @doc """
       iex> [0.125, 0.5, 0.5, 2.0, 0.5, 2.0, 2.0, 8.0] |> Options.Main.pairs()
       [[0.125, 0.5], [0.5, 2.0], [0.5, 2.0], [2.0, 8.0]]
   """
   # splits a future price distribution into ordered pairs
-  def pairs(dist) do
+  def pairs(dist), do: Enum.chunk_every(dist, 2)
+  
+  @doc """
+      iex> [0.125, 0.5, 0.5, 2.0, 0.5, 2.0, 2.0, 8.0] |> Options.Main.calldist(1.0)
+      [0.0, 0.0, 0.0, 1.0, 0.0, 1.0, 1.0, 7.0]
+  """
+  def calldist(stockdist, ex) do
+	  stockdist
+	  |> Enum.map(&max(0.0, &1 - ex))
+  end
+  
+  @doc """
+      iex> [0.125, 0.5, 0.5, 2.0, 0.5, 2.0, 2.0, 8.0] |> 
+      ...> Options.Main.bothsandc([0.0, 0.0, 0.0, 1.0, 0.0, 1.0, 1.0, 7.0])
+      [{[0.125, 0.5], [0.0, 0.0]},
+       {[0.5, 2.0], [0.0, 1.0]},
+       {[0.5, 2.0], [0.0, 1.0]},
+       {[2.0, 8.0], [1.0, 7.0]}]
+  """
+  def bothsandc(stockdist, calldist), do: Enum.zip(pairs(stockdist), pairs(calldist))
+  
+
+  
+  ### below are depreciated funtions ###
+  
+  @doc """
+      iex> [0.125, 0.5, 0.5, 2.0, 0.5, 2.0, 2.0, 8.0] |> Options.Main.pairs_dep()
+      [[0.125, 0.5], [0.5, 2.0], [0.5, 2.0], [2.0, 8.0]]
+  """
+  # splits a future price distribution into ordered pairs (depreciated for chunk_every)
+  def pairs_dep(dist) do
     if length(dist) == 2 do
       [dist]
     else
