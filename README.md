@@ -1,6 +1,6 @@
 # Options
 
-**TODO: Add description**
+This library contains functions useful for pricing derivative securities using the binomial arbitrage pricing method. Examples and descriptions of functions are provided in the doctests.
 
 ## Installation
 
