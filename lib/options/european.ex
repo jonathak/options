@@ -5,7 +5,7 @@ defmodule Options.European do
 
   @doc """
       iex> Options.European.simplecall(100.0, 5, 0.2, 2.0, 0.5, 125.0, 0.05)
-      26.08728501338723
+      50.430059456727335
   """
   # simplecall/7
   # valuation of call option given simple parameters
@@ -14,9 +14,9 @@ defmodule Options.European do
     with fut_stk_prc_dist = spread(sp, levels),
          fut_cal_prc_dist = Enum.map(fut_stk_prc_dist, &max(0.0, &1 - ex)),
          combined = Enum.zip(pairs(fut_stk_prc_dist), pairs(fut_cal_prc_dist)) do
-      IO.inspect(fut_stk_prc_dist)
-      IO.inspect(fut_cal_prc_dist)
-      IO.inspect(combined)
+      #IO.inspect(fut_stk_prc_dist)
+      #IO.inspect(fut_cal_prc_dist)
+      #IO.inspect(combined)
       callnode(combined, gu, gd, r, dt)
     end
   end
@@ -243,7 +243,7 @@ defmodule Options.European do
   @doc """
       iex> combined = [{[0.125, 0.5], [0.0, 0.0]}, {[0.5, 2.0], [0.0, 1.0]}, {[0.5, 2.0], [0.0, 1.0]}, {[2.0, 8.0], [1.0, 7.0]}]
       iex> Options.European.callnode(combined, 2.0, 0.5, 0.05, 0.33)
-      0.6461619195466833
+      0.4689631615583376
   """
   # callnode/5
   # calculates call value at node of binomial tree
@@ -257,8 +257,8 @@ defmodule Options.European do
              |> pairs(),
            creduced = callcalc(combined, gu, gd, r, dt),
            rdist = Enum.zip(sreduced, creduced) do
-        IO.inspect(sreduced)
-        IO.inspect(creduced)
+        #IO.inspect(sreduced)
+        #IO.inspect(creduced)
         callnode(rdist, gu, gd, r, dt)
       end
     end
