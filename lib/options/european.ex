@@ -22,9 +22,37 @@ defmodule Options.European do
   def split(s, gu, gd), do: [s * gd, s * gu]
 
   @doc """
+      iex> Options.European.revsplit([0.125, 0.5], 2.0, 0.5)
+      0.25
+  """
+  # revsplit/3
+  # reverse split
+  def revsplit([sfd, sfu], gu, gd) do
+    with s1 = sfu / gu,
+         s2 = sfd / gd do
+      if s1 == s2 do
+        s1
+      else
+        :error
+      end
+    end
+  end
+
+  @doc """
+      iex> Options.European.revsplit([0.125, 0.5], 2.0)
+      0.25
+  """
+  # revsplit/2
+  # reverse split
+  def revsplit([sfd, sfu], gu) do
+    with gd = 1 / gu, do: revsplit([sfd, sfu], gu, gd)
+  end
+
+  @doc """
       iex> Options.European.bondp(100, 0.05, 1.0)
       95.1229424500714
   """
+  # bondp/3
   # pres val of bf bond future
   def bondp(bf, r, dt), do: bf * :math.exp(-r * dt)
 
@@ -32,6 +60,7 @@ defmodule Options.European do
       iex> Options.European.callf([50, 200], 100)
       [0, 100]
   """
+  # callf/2
   # call future value
   def callf([sd, su], ex), do: [max(0, sd - ex), max(0, su - ex)]
 
@@ -39,6 +68,7 @@ defmodule Options.European do
       iex> Options.European.bondf([50, 200], [0, 100])
       50
   """
+  # bondf/2
   # bond future value that satisfies hedge position w/o ratio
   def bondf([sfd, _sfu], [cfd, _cfu]) do
     if cfd <= 0.0 do
@@ -52,6 +82,7 @@ defmodule Options.European do
       iex> Options.European.hedgef([50, 200], [0, 100])
       [0, 150]
   """
+  # hedgef/2
   # future hedge portfolio, bf bond future
   def hedgef([sfd, sfu], [cfd, cfu]) do
     with bf = bondf([sfd, sfu], [cfd, cfu]) do
@@ -63,6 +94,7 @@ defmodule Options.European do
       iex> Options.European.hedgep(3.0, 2.0)
       1.0
   """
+  # hedgep/2
   # pres val hedge portfolio, stock present bond present
   def hedgep(sp, bp), do: sp - bp
 
@@ -70,22 +102,30 @@ defmodule Options.European do
       iex> Options.European.ratio([1.0, 2.0], [0.0, 1.0])
       2.0
   """
+  # ratio/2
   # hedge future down, up, call etc.
-  def ratio([_hfd, hfu], [_cfd, cfu]), do: hfu / cfu
+  def ratio([_hfd, hfu], [_cfd, cfu]) do
+    hfu / cfu
+  end
 
   @doc """
       iex> Options.European.callp(100, [50, 200], [0, 100], 0.05, 5.0)
       40.7066405642865
   """
+  # callp/5
   # present value of call using forward call prices from tree
   # sf stock present future down up, exercise price, hcr hedge call ratio
   def callp(sp, [sfd, sfu], [cfd, cfu], r, dt) do
-    with sf = [sfd, sfu],
-         cf = [cfd, cfu],
-         hcr = ratio(hedgef(sf, cf), cf),
-         bf = bondf(sf, cf),
-         bp = bondp(bf, r, dt) do
-      hedgep(sp, bp) / hcr
+    if cfu > 0.0 do
+      with sf = [sfd, sfu],
+           cf = [cfd, cfu],
+           hcr = ratio(hedgef(sf, cf), cf),
+           bf = bondf(sf, cf),
+           bp = bondp(bf, r, dt) do
+        hedgep(sp, bp) / hcr
+      end
+    else
+      0.0
     end
   end
 
@@ -93,6 +133,7 @@ defmodule Options.European do
       iex> Options.European.callpp(100, [50, 200], 100, 0.05, 1.0)
       34.95901918330953
   """
+  # callpp/5
   # present value call, future call prices inferred
   def callpp(sp, [sd, su], ex, r, dt) do
     if ex >= sd and ex < su do
@@ -110,6 +151,7 @@ defmodule Options.European do
       iex> [50.0, 200.0] |> Options.European.expand()
       [[25.0, 100.0], [100.0, 400.0]]
   """
+  # expand/1
   # add layer to stock price progression
   def expand([d, u]) do
     if is_float(d) or is_integer(d) do
@@ -123,6 +165,7 @@ defmodule Options.European do
       iex> Options.European.spread(100.0, 2)
       [12.5, 50.0, 50.0, 200.0, 50.0, 200.0, 200.0, 800.0]
   """
+  # spread/2
   # stock price progression to n levels
   def spread(s \\ 100.0, n \\ 2) do
     1..n
@@ -134,6 +177,7 @@ defmodule Options.European do
       iex> [0.125, 0.5, 0.5, 2.0, 0.5, 2.0, 2.0, 8.0] |> Options.European.pairs()
       [[0.125, 0.5], [0.5, 2.0], [0.5, 2.0], [2.0, 8.0]]
   """
+  # pairs/1
   # splits a future price distribution into ordered pairs
   def pairs(dist), do: Enum.chunk_every(dist, 2)
 
@@ -141,6 +185,8 @@ defmodule Options.European do
       iex> [0.125, 0.5, 0.5, 2.0, 0.5, 2.0, 2.0, 8.0] |> Options.European.calldist(1.0)
       [0.0, 0.0, 0.0, 1.0, 0.0, 1.0, 1.0, 7.0]
   """
+  # calldist/2
+  # forward call value distrbution
   def calldist(stockdist, ex) do
     stockdist
     |> Enum.map(&max(0.0, &1 - ex))
@@ -154,9 +200,36 @@ defmodule Options.European do
        {[0.5, 2.0], [0.0, 1.0]},
        {[2.0, 8.0], [1.0, 7.0]}]
   """
+  # bothsandc/2
+  # combining future stock and futur call distributions 
   def bothsandc(stockdist, calldist), do: Enum.zip(pairs(stockdist), pairs(calldist))
 
-  ### below are depreciated funtions ###
+  @doc """
+      iex> combined = [{[0.125, 0.5], [0.0, 0.0]}, {[0.5, 2.0], [0.0, 1.0]}, {[0.5, 2.0], [0.0, 1.0]}, {[2.0, 8.0], [1.0, 7.0]}]
+      iex> Options.European.callcalc(combined, 2.0, 0.5, 0.05, 0.33)
+      [[0.0, 0.3387882068697759], [0.3387882068697759, 3.0163646206093278]]
+  """
+  # callcalc/5
+  # derivation call price one layer toward node of binomial tree
+  def callcalc(combined, gu, gd, r, dt) do
+    combined
+    |> Enum.map(&cchelper(&1, gu, gd, r, dt))
+    |> pairs()
+  end
+
+  # cchelper/5
+  # helper function for callcalc (above)
+  defp cchelper(pair, gu, gd, r, dt) do
+    with sf = elem(pair, 0),
+         cf = elem(pair, 1),
+         sp = revsplit(sf, gu, gd) do
+      callp(sp, sf, cf, r, dt)
+    end
+  end
+
+  #######################################
+  ### below are depreciated functions ###
+  #######################################
 
   @doc """
       iex> [0.125, 0.5, 0.5, 2.0, 0.5, 2.0, 2.0, 8.0] |> Options.European.pairs_dep()

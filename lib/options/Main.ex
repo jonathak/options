@@ -8,8 +8,8 @@ defmodule Options.Main do
   def start() do
     s = spread(1.0, 2)
     c = calldist(s, 1.0)
-	combine = bothsandc(s, c)
-	h = combine |> hd()
-	IO.inspect h
+	combined = bothsandc(s, c)
+	IO.inspect combined
+    IO.inspect callcalc(combined, 2.0, 0.5, 0.05, 0.33)
   end
 end
