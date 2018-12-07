@@ -11,21 +11,21 @@ defmodule Options.European do
   # valuation of call option given simple parameters
   # stock price, time granularity, gains up and down, exercize price, risk free rate
   def simplecall(sp, levels, t, vol, ex, r) do
-    with dt = t/levels,
-	     gu = voltorate(vol, dt),
-	     gd = 1/gu,
-	     fut_stk_prc_dist = spread(sp, levels, gu, gd),
+    with dt = t / levels,
+         gu = voltorate(vol, dt),
+         gd = 1 / gu,
+         fut_stk_prc_dist = spread(sp, levels, gu, gd),
          fut_cal_prc_dist = Enum.map(fut_stk_prc_dist, &max(0.0, &1 - ex)),
          combined = Enum.zip(pairs(fut_stk_prc_dist), pairs(fut_cal_prc_dist)) do
-	  callnode(combined, gu, gd, r, dt)
+      callnode(combined, gu, gd, r, dt)
     end
   end
-  
+
   # volatility to growth rate
   def voltorate(volatility, dt) do
-	  with exponent = volatility * (:math.sqrt(dt)) do 
-		  :math.exp(exponent)
-	  end
+    with exponent = volatility * :math.sqrt(dt) do
+      :math.exp(exponent)
+    end
   end
 
   @doc """
@@ -55,7 +55,7 @@ defmodule Options.European do
   def revsplit([sfd, sfu], gu, gd) do
     with s1 = sfu / gu,
          s2 = sfd / gd do
-      if abs(s1 - s2)/s1 < 0.0001do
+      if abs(s1 - s2) / s1 < 0.0001 do
         s1
       else
         :error
@@ -97,7 +97,6 @@ defmodule Options.European do
   # bond future value that satisfies hedge position w/o ratio
   def bondf([sfd, _sfu], [cfd, _cfu]), do: sfd - cfd
 
-
   @doc """
       iex> Options.European.hedgef([50, 200], [0, 100])
       [0, 150]
@@ -116,8 +115,8 @@ defmodule Options.European do
   """
   # hedgep/2
   # pres val hedge portfolio, stock present bond present
-  def hedgep(sp, bp) do 
-	  sp-bp
+  def hedgep(sp, bp) do
+    sp - bp
   end
 
   @doc """
@@ -190,13 +189,13 @@ defmodule Options.European do
   # spread/2
   # stock price progression to n levels
   def spread(s, n, gu, gd) do
-	  if n > 1 do
-        1..n
-        |> Enum.reduce(split(s, gu, gd), fn _x, acc -> expand(acc, gu, gd) end)
-        |> List.flatten()
-	else
-		split(s, gu, gd)
-	end
+    if n > 1 do
+      1..n
+      |> Enum.reduce(split(s, gu, gd), fn _x, acc -> expand(acc, gu, gd) end)
+      |> List.flatten()
+    else
+      split(s, gu, gd)
+    end
   end
 
   @doc """
