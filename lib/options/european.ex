@@ -4,18 +4,28 @@ defmodule Options.European do
   """
 
   @doc """
-      iex> Options.European.simplecall(100.0, 5, 0.2, 2.0, 0.5, 125.0, 0.05)
+      iex> Options.European.simplecall(100.0, 5, 1.0, 1.0, 125.0, 0.05)
       50.430059456727335
   """
   # simplecall/7
   # valuation of call option given simple parameters
   # stock price, time granularity, gains up and down, exercize price, risk free rate
-  def simplecall(sp, levels, dt, gu, gd, ex, r) do
-    with fut_stk_prc_dist = spread(sp, levels, gu, gd),
+  def simplecall(sp, levels, t, vol, ex, r) do
+    with dt = t/levels,
+	     gu = voltorate(vol, dt),
+	     gd = 1/gu,
+	     fut_stk_prc_dist = spread(sp, levels, gu, gd),
          fut_cal_prc_dist = Enum.map(fut_stk_prc_dist, &max(0.0, &1 - ex)),
          combined = Enum.zip(pairs(fut_stk_prc_dist), pairs(fut_cal_prc_dist)) do
 	  callnode(combined, gu, gd, r, dt)
     end
+  end
+  
+  # volatility to growth rate
+  def voltorate(volatility, dt) do
+	  with exponent = volatility * (:math.sqrt(dt)) do 
+		  :math.exp(exponent)
+	  end
   end
 
   @doc """
@@ -45,7 +55,7 @@ defmodule Options.European do
   def revsplit([sfd, sfu], gu, gd) do
     with s1 = sfu / gu,
          s2 = sfd / gd do
-      if s1 == s2 do
+      if abs(s1 - s2)/s1 < 0.0001do
         s1
       else
         :error
