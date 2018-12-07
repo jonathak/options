@@ -4,12 +4,12 @@ defmodule Options.European do
   """
 
   @doc """
-      iex> Options.European.simplecall(100.0, 5, 1.0, 1.0, 125.0, 0.05)
-      50.430059456727335
+      iex> Options.European.simplecall(100.0, 5, 1.0, 0.1, 100.0, 0.05)
+      6.257116861602118
   """
   # simplecall/7
   # valuation of call option given simple parameters
-  # stock price, time granularity, gains up and down, exercize price, risk free rate
+  # stock price, time granularity, volatility, exercize price, risk free rate
   def simplecall(sp, levels, t, vol, ex, r) do
     with dt = t / levels,
          gu = voltorate(vol, dt),
@@ -21,7 +21,19 @@ defmodule Options.European do
     end
   end
 
-  # volatility to growth rate
+  # simplecall/8
+  # valuation of call option given simple parameters
+  # stock price, time granularity, gains up and down, exercize price, risk free rate
+  def simplecall(sp, levels, t, gu, gd, ex, r) do
+    with dt = t / levels,
+         fut_stk_prc_dist = spread(sp, levels, gu, gd),
+         fut_cal_prc_dist = Enum.map(fut_stk_prc_dist, &max(0.0, &1 - ex)),
+         combined = Enum.zip(pairs(fut_stk_prc_dist), pairs(fut_cal_prc_dist)) do
+      callnode(combined, gu, gd, r, dt)
+    end
+  end
+
+  # annual volatility to growth rate per delta-t in years
   def voltorate(volatility, dt) do
     with exponent = volatility * :math.sqrt(dt) do
       :math.exp(exponent)
@@ -184,27 +196,68 @@ defmodule Options.European do
 
   @doc """
       iex> Options.European.spread(100.0, 2, 2.0, 0.5)
-      [12.5, 50.0, 50.0, 200.0, 50.0, 200.0, 200.0, 800.0]
+      [25.0, 100.0, 400.0]
   """
   # spread/2
   # stock price progression to n levels
   def spread(s, n, gu, gd) do
     if n > 1 do
-      1..n
-      |> Enum.reduce(split(s, gu, gd), fn _x, acc -> expand(acc, gu, gd) end)
+      1..(n - 1)
+      |> Enum.reduce(split(s * 1.0, gu * 1.0, gd * 1.0), fn _x, acc -> expand(acc, gu, gd) end)
       |> List.flatten()
+      |> Enum.sort()
+      |> myuniq()
     else
       split(s, gu, gd)
     end
   end
 
   @doc """
-      iex> [0.125, 0.5, 0.5, 2.0, 0.5, 2.0, 2.0, 8.0] |> Options.European.pairs()
-      [[0.125, 0.5], [0.5, 2.0], [0.5, 2.0], [2.0, 8.0]]
+      iex> Options.European.myuniq([100.0, 200.0, 200.01, 200.3, 300.0])
+      [100.0, 200.0, 300.0]
   """
-  # pairs/1
+  # myuniq/1
+  # eliminates close values that were retained due to rounding errors
+  def myuniq(nums) do
+    [x | y] = nums
+
+    if y == [] do
+      [x]
+    else
+      if abs(x - hd(y)) / x < 0.01 do
+        [x | myuniq(shave(x, y))]
+      else
+        [x | myuniq(y)]
+      end
+    end
+  end
+
+  @doc """
+      iex> Options.European.shave(200.0, [200.0, 200.01, 200.3, 300.0])
+      [300.0]
+  """
+  # shave/2
+  # helper for myuniq
+  def shave(x, y) do
+    if abs(x - hd(y)) / x < 0.01 do
+      shave(x, tl(y))
+    else
+      y
+    end
+  end
+
+  @doc """
+      iex> [1,2,3,4,5] |> Options.European.pairs()
+      [[1,2], [2,3], [3,4], [4,5]]
+  """
   # splits a future price distribution into ordered pairs
-  def pairs(dist), do: Enum.chunk_every(dist, 2)
+  def pairs(dist) do
+    if length(dist) == 2 do
+      [dist]
+    else
+      [[hd(dist), hd(tl(dist))] | pairs(tl(dist))]
+    end
+  end
 
   @doc """
       iex> [0.125, 0.5, 0.5, 2.0, 0.5, 2.0, 2.0, 8.0] |> Options.European.calldist(1.0)
@@ -218,21 +271,18 @@ defmodule Options.European do
   end
 
   @doc """
-      iex> [0.125, 0.5, 0.5, 2.0, 0.5, 2.0, 2.0, 8.0] |> 
-      ...> Options.European.bothsandc([0.0, 0.0, 0.0, 1.0, 0.0, 1.0, 1.0, 7.0])
-      [{[0.125, 0.5], [0.0, 0.0]},
-       {[0.5, 2.0], [0.0, 1.0]},
-       {[0.5, 2.0], [0.0, 1.0]},
-       {[2.0, 8.0], [1.0, 7.0]}]
+      iex> [1, 2, 3] |> 
+      ...> Options.European.bothsandc([4, 5, 6])
+      [{[1,2],[4,5]}, {[2,3], [5,6]}]
   """
   # bothsandc/2
   # combining future stock and future call distributions 
   def bothsandc(stockdist, calldist), do: Enum.zip(pairs(stockdist), pairs(calldist))
 
   @doc """
-      iex> combined = [{[0.125, 0.5], [0.0, 0.0]}, {[0.5, 2.0], [0.0, 1.0]}, {[0.5, 2.0], [0.0, 1.0]}, {[2.0, 8.0], [1.0, 7.0]}]
+      iex> combined = [{[12.5, 50.0], [0.0,0.0]}, {[50.0, 200.0], [0.0,100.0]}, {[200.0,800.0],[100.0, 700.0]}]
       iex> Options.European.callcalc(combined, 2.0, 0.5, 0.05, 0.33)
-      [[0.0, 0.3387882068697759], [0.3387882068697759, 3.0163646206093278]]
+      [[0.0, 33.87882068697758], [33.87882068697758, 301.6364620609328]]
   """
   # callcalc/5
   # calculates call price one layer toward node of binomial tree
@@ -253,9 +303,9 @@ defmodule Options.European do
   end
 
   @doc """
-      iex> combined = [{[0.125, 0.5], [0.0, 0.0]}, {[0.5, 2.0], [0.0, 1.0]}, {[0.5, 2.0], [0.0, 1.0]}, {[2.0, 8.0], [1.0, 7.0]}]
+      iex> combined = [{[12.5, 50.0], [0.0,0.0]}, {[50.0, 200.0], [0.0,100.0]}, {[200.0,800.0],[100.0, 700.0]}]
       iex> Options.European.callnode(combined, 2.0, 0.5, 0.05, 0.33)
-      0.4689631615583376
+      46.89631615583375
   """
   # callnode/5
   # calculates call value at node of binomial tree
@@ -277,19 +327,6 @@ defmodule Options.European do
   #######################################
   ### below are depreciated functions ###
   #######################################
-
-  @doc """
-      iex> [0.125, 0.5, 0.5, 2.0, 0.5, 2.0, 2.0, 8.0] |> Options.European.pairs_dep()
-      [[0.125, 0.5], [0.5, 2.0], [0.5, 2.0], [2.0, 8.0]]
-  """
-  # splits a future price distribution into ordered pairs (depreciated for chunk_every)
-  def pairs_dep(dist) do
-    if length(dist) == 2 do
-      [dist]
-    else
-      [[hd(dist), hd(tl(dist))] | pairs(tl(tl(dist)))]
-    end
-  end
 
   @doc """
       iex> [[[1.0, 1.0], [1.0, 1.0]], [[1.0, 1.0], [1.0, 1.0]]] |> Options.European.depth()
