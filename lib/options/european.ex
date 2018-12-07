@@ -11,13 +11,11 @@ defmodule Options.European do
   # valuation of call option given simple parameters
   # stock price, time granularity, gains up and down, exercize price, risk free rate
   def simplecall(sp, levels, dt, gu, gd, ex, r) do
-    with fut_stk_prc_dist = spread(sp, levels),
+    with fut_stk_prc_dist = spread(sp, levels, gu, gd),
          fut_cal_prc_dist = Enum.map(fut_stk_prc_dist, &max(0.0, &1 - ex)),
          combined = Enum.zip(pairs(fut_stk_prc_dist), pairs(fut_cal_prc_dist)) do
-      #IO.inspect(fut_stk_prc_dist)
-      #IO.inspect(fut_cal_prc_dist)
-      #IO.inspect(combined)
-      callnode(combined, gu, gd, r, dt)
+			 IO.inspect fut_stk_prc_dist
+	  callnode(combined, gu, gd, r, dt)
     end
   end
 
@@ -27,7 +25,7 @@ defmodule Options.European do
   """
   # split/2
   # equity (stock) price progression, symetric
-  def split(s, gu \\ 2.0) do
+  def split(s, gu) do
     with gd = 1 / gu, do: split(s, gu, gd)
   end
 
@@ -46,6 +44,7 @@ defmodule Options.European do
   # revsplit/3
   # reverse split
   def revsplit([sfd, sfu], gu, gd) do
+	  IO.puts("sfd #{sfd}, sfu #{sfu}, gu #{gu} gd #{gd}")
     with s1 = sfu / gu,
          s2 = sfd / gd do
       if s1 == s2 do
@@ -109,7 +108,10 @@ defmodule Options.European do
   """
   # hedgep/2
   # pres val hedge portfolio, stock present bond present
-  def hedgep(sp, bp), do: sp - bp
+  def hedgep(sp, bp) do 
+	  IO.puts "#{sp}, #{bp}"
+	  sp-bp
+  end
 
   @doc """
       iex> Options.European.ratio([1.0, 2.0], [0.0, 1.0])
@@ -166,11 +168,11 @@ defmodule Options.European do
   """
   # expand/1
   # add layer to stock price progression
-  def expand([d, u]) do
+  def expand([d, u], gu, gd) do
     if is_float(d) or is_integer(d) do
-      [split(d), split(u)]
+      [split(d, gu, gd), split(u, gu, gd)]
     else
-      [expand(d), expand(u)]
+      [expand(d, gu, gd), expand(u, gu, gd)]
     end
   end
 
@@ -180,10 +182,14 @@ defmodule Options.European do
   """
   # spread/2
   # stock price progression to n levels
-  def spread(s \\ 100.0, n \\ 2) do
-    1..n
-    |> Enum.reduce(split(s), fn _x, acc -> expand(acc) end)
-    |> List.flatten()
+  def spread(s, n, gu, gd) do
+	  if n > 1 do
+        1..n
+        |> Enum.reduce(split(s, gu, gd), fn _x, acc -> expand(acc, gu, gd) end)
+        |> List.flatten()
+	else
+		split(s, gu, gd)
+	end
   end
 
   @doc """

@@ -6,6 +6,6 @@ defmodule Options.Main do
   # called when evoking "mix start" at CLI.
   def start() do
 	  # def simplecall(sp, levels, dt, gu, gd, ex, r)
-	  IO.inspect Options.European.simplecall(100.0, 5, 1.0, 1.5, 0.5, 30.0, 0.00)
+	  IO.inspect Options.European.simplecall(100.0, 1, 1.0, 1.5, 0.5, 30.0, 0.00)
   end
 end
