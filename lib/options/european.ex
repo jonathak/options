@@ -14,7 +14,6 @@ defmodule Options.European do
     with fut_stk_prc_dist = spread(sp, levels, gu, gd),
          fut_cal_prc_dist = Enum.map(fut_stk_prc_dist, &max(0.0, &1 - ex)),
          combined = Enum.zip(pairs(fut_stk_prc_dist), pairs(fut_cal_prc_dist)) do
-			 IO.inspect fut_stk_prc_dist
 	  callnode(combined, gu, gd, r, dt)
     end
   end
@@ -44,7 +43,6 @@ defmodule Options.European do
   # revsplit/3
   # reverse split
   def revsplit([sfd, sfu], gu, gd) do
-	  IO.puts("sfd #{sfd}, sfu #{sfu}, gu #{gu} gd #{gd}")
     with s1 = sfu / gu,
          s2 = sfd / gd do
       if s1 == s2 do
@@ -109,7 +107,6 @@ defmodule Options.European do
   # hedgep/2
   # pres val hedge portfolio, stock present bond present
   def hedgep(sp, bp) do 
-	  IO.puts "#{sp}, #{bp}"
 	  sp-bp
   end
 
@@ -163,7 +160,7 @@ defmodule Options.European do
   end
 
   @doc """
-      iex> [50.0, 200.0] |> Options.European.expand()
+      iex> [50.0, 200.0] |> Options.European.expand(2.0, 0.5)
       [[25.0, 100.0], [100.0, 400.0]]
   """
   # expand/1
@@ -177,7 +174,7 @@ defmodule Options.European do
   end
 
   @doc """
-      iex> Options.European.spread(100.0, 2)
+      iex> Options.European.spread(100.0, 2, 2.0, 0.5)
       [12.5, 50.0, 50.0, 200.0, 50.0, 200.0, 200.0, 800.0]
   """
   # spread/2
@@ -263,8 +260,6 @@ defmodule Options.European do
              |> pairs(),
            creduced = callcalc(combined, gu, gd, r, dt),
            rdist = Enum.zip(sreduced, creduced) do
-        #IO.inspect(sreduced)
-        #IO.inspect(creduced)
         callnode(rdist, gu, gd, r, dt)
       end
     end
