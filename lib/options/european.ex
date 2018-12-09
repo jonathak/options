@@ -13,16 +13,16 @@ defmodule Options.European do
   def vol(x \\ 0.3), do: x
 
   # time to maturity (years)
-  def t(x \\ 40.0/365), do: x
+  def t(x \\ 1.0), do: x
 
   # granularity of binomial tree (levels)
   def levels(x \\ 5), do: x
 
   # strike price
-  def k(x \\ 50.0), do: x
+  def k(x \\ 100.0), do: x
 
   # stock price present value
-  def s(x \\ 30.0), do: x
+  def s(x \\ 100.0), do: x
 
   # annual risk free rate continuous compounding
   def r(x \\ 0.05), do: x
@@ -33,13 +33,20 @@ defmodule Options.European do
 
   
 	def start do
-		(1..50) |> Enum.map(&callvalue(&1))
+		(55..64) 
+		|> Enum.map(&callvalue(&1))
+		|> Enum.chunk_every(10)
+		|> Enum.map(&avg(&1))
+		|> Enum.each(&IO.puts(&1))
 	end
 	
 	def callvalue(n) do
-    sl = leaves(s(), gu(), n)
+		dt = dt(t(), n)
+		gu = gu(vol(), dt)
+    sl = leaves(s(), gu, n)
     cl = cleaves(sl)
-    IO.puts "#{hd(callnode(sl, cl))}"
+		r = r()
+		callnode(sl, cl, gu, r, dt) |> hd()
   end
 
   ###############
@@ -67,12 +74,16 @@ defmodule Options.European do
   end
 
   def bondsf(sfl, cfl) do
-    with sfchomp = sfl |> List.delete_at(-1),
-         cfchomp = cfl |> List.delete_at(-1),
-         combined = Enum.zip([sfchomp, cfchomp]) do
-      combined |> Enum.map(&(elem(&1, 0) - elem(&1, 1)))
+    with sfpairs = sfl |> U.pairs(),
+         cfpairs = cfl |> U.pairs(),
+         combined = Enum.zip([sfpairs, cfpairs]) do
+      combined |> Enum.map(&bfhelper(&1))
     end
   end
+	
+	def bfhelper({[_, _], [x, x]}), do: 0.0
+	def bfhelper({[sfu, sfd], [cfu, cfd]}), do: (cfu*sfd-sfu*cfd)/(cfu-cfd)
+		
 
   def bondsp(bf, r \\ r(), dt \\ dt()) do
     bf |> Enum.map(&(&1 * :math.exp(-r * dt)))
@@ -183,4 +194,8 @@ defmodule Options.European do
     slist
     |> Enum.map(&max(0.0, &1 - k))
   end
+	
+	def avg(x) do
+		Enum.reduce(x, fn x, acc -> x + acc end) /10.0
+	end
 end
