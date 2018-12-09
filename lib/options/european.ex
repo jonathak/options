@@ -33,7 +33,7 @@ defmodule Options.European do
 
   
 	def start do
-		(55..64) 
+		(25..84) 
 		|> Enum.map(&callvalue(&1))
 		|> Enum.chunk_every(10)
 		|> Enum.map(&avg(&1))
@@ -56,9 +56,9 @@ defmodule Options.European do
   # leaves/3
   # creates the end of the tree
   @doc """
-      iex> Options.European.leaves(100.0, 0.8744465748183686, 5)
-      [51.128894767778185, 66.86515303499456, 87.44465748183684, 114.35804413868394, 149.55473136756888, 195.58412215673536]
-  """
+      iex> Options.European.leaves(75.0, 0.8, 6)
+      [286.102294921875, 183.10546875000003, 117.18750000000006, 75.00000000000004, 48.00000000000004, 30.720000000000027, 19.660800000000023]
+	"""
   def leaves(s \\ s(), gu \\ gu(), levels \\ levels()) do
     with gd = gd(gu),
          bottom = s * :math.pow(gd, levels),
@@ -68,11 +68,21 @@ defmodule Options.European do
     end
   end
 
+  # cleaves/2
+  # creates the end of the tree
+  @doc """
+      iex> [167.7, 128.2, 98.0, 75.0, 57.3, 43.8, 33.5] |> Options.European.cleaves(65.0)
+      [102.69999999999999, 63.19999999999999, 33.0, 10.0, 0.0, 0.0, 0.0]
+  """
   def cleaves(sleaves, k \\ k()) do
     sleaves
     |> Enum.map(&max(&1 - k, 0.0))
   end
 
+  @doc """
+	      iex> [167.7, 128.2, 98.0, 75.0, 57.3, 43.8, 33.5] |> Options.European.bondsf([102.7, 63.2, 33.0, 10.0, 0.0, 0.0, 0.0])
+	      [65.0, 65.00000000000003, 65.0, 57.3, 0.0, 0.0]
+	"""
   def bondsf(sfl, cfl) do
     with sfpairs = sfl |> U.pairs(),
          cfpairs = cfl |> U.pairs(),
@@ -84,11 +94,18 @@ defmodule Options.European do
 	def bfhelper({[_, _], [x, x]}), do: 0.0
 	def bfhelper({[sfu, sfd], [cfu, cfd]}), do: (cfu*sfd-sfu*cfd)/(cfu-cfd)
 		
-
+  @doc """
+	      iex> [167.7, 128.2, 98.0, 75.0, 57.3, 43.8, 33.5] |> Options.European.bondsp(0.06, 0.50)
+	      [162.74371597608481, 124.41111740091874, 95.10366228775379, 72.78341501613811, 55.606529072329515, 42.50551436942465, 32.50992537387502]
+	"""
   def bondsp(bf, r \\ r(), dt \\ dt()) do
     bf |> Enum.map(&(&1 * :math.exp(-r * dt)))
   end
 
+  @doc """
+	      iex> [167.7, 128.2, 98.0, 75.0, 57.3, 43.8, 33.5] |> Options.European.htops([102.7, 63.2, 33.0, 10.0, 0.0, 0.0, 0.0])
+	      [25.499999999999986, 34.8, 42.0, 47.3, 43.8, 33.5]
+	"""
   def htops(sfl, bfl) do
     with stops = sfl |> List.delete_at(0),
          combined = Enum.zip([stops, bfl]) do
@@ -96,6 +113,10 @@ defmodule Options.European do
     end
   end
 
+  @doc """
+	      iex> [25.5, 34.8, 41.9, 47.3, 43.8, 33.5] |> Options.European.sfratios([102.7, 63.2, 33.0, 10.0, 0.0, 0.0, 0.0])
+	      [0.40348101265822783, 1.0545454545454545, 4.1899999999999995, 0.0, 0.0, 0.0]
+	"""
   def sfratios(htops, cfl) do
     with ctops = cfl |> List.delete_at(0),
          combined = Enum.zip([htops, ctops]) do
@@ -105,7 +126,11 @@ defmodule Options.European do
 
   def sfrhelper({_x, 0.0}), do: 0.0
   def sfrhelper({x, y}), do: x / y
-
+	
+  @doc """
+	      iex> [50.0, 100.0, 200.0] |> Options.European.callp([50.0, 100.0, 100.0], [0.6, 0.55, 0.65])
+	      [0.0, 0.0, 153.84615384615384]
+	"""
   def callp(sp, bp, hr) do
     with combined = Enum.zip([sp, bp, hr]) do
       combined |> Enum.map(&cphelper(&1))
@@ -115,6 +140,10 @@ defmodule Options.European do
   def cphelper({_sp, _bp, 0.0}), do: 0.0
   def cphelper({sp, bp, hr}), do: (sp - bp) / hr
 
+  @doc """
+	      iex> [167.7, 128.2, 98.0, 75.0, 57.3, 43.8, 33.5] |> Options.European.callagain([102.7, 63.2, 33.0, 10.0, 0.0, 0.0, 0.0], 1.1, 0.04, 0.23)
+	      [52.140712161874546, 24.686166707329086, 3.7770757982381724, 0.0, 0.0, 0.0]
+	"""
   def callagain(sf, cf, gu \\ gu(), r \\ r(), dt \\ dt()) do
     with gd = gd(gu),
          sp = sreduce(sf, gd),
@@ -126,6 +155,10 @@ defmodule Options.European do
     end
   end
 
+  @doc """
+	      iex> [51.1, 66.8, 87.4, 114.3, 149.5, 195.5] |> Options.European.callnode([0.0, 0.0, 0.0, 14.3, 49.5, 95.5], 1.14, 0.07, 0.25)
+	      [17.61075364545998]
+	"""
   def callnode(sf, cf, gu \\ gu(), r \\ r(), dt \\ dt()) do
     with gd = gd(gu),
          sp = sreduce(sf, gd),
@@ -195,7 +228,11 @@ defmodule Options.European do
     |> Enum.map(&max(0.0, &1 - k))
   end
 	
+	@doc """
+	  iex> [1,2,3] |> Options.European.avg()
+	  2.0
+	"""
 	def avg(x) do
-		Enum.reduce(x, fn x, acc -> x + acc end) /10.0
+		Enum.reduce(x, fn x, acc -> x + acc end) / length(x)
 	end
 end
