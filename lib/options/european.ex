@@ -45,7 +45,7 @@ defmodule Options.European do
     sl = leaves(s(), gu, n)
     cl = cleaves(sl)
     r = r()
-    callnode(sl, cl, gu, r, dt) |> hd()
+    callnode(cl, sl, gu, r, dt) |> hd()
   end
 
   ###############
@@ -138,12 +138,12 @@ defmodule Options.European do
   # callp/3
   # call values back one layer
   @doc """
-        iex> [50.0, 100.0, 200.0] |> Options.European.callp([50.0, 100.0, 100.0], [0.6, 0.55, 0.65])
+        iex> [0.6, 0.55, 0.65] |> Options.European.callp([50.0, 100.0, 200.0], [50.0, 100.0, 100.0])
         [0.0, 0.0, 153.84615384615384]
   """
-  def callp(sp, bp, hr) do
+  def callp(hr, sp, bp) do
     Enum.zip([sp, bp, hr])
-      |> Enum.map(&cphelper(&1))
+    |> Enum.map(&cphelper(&1))
   end
 
   def cphelper({_sp, _bp, 0.0}), do: 0.0
@@ -158,31 +158,38 @@ defmodule Options.European do
   def callagain(sf, cf, gu \\ gu(), r \\ r(), dt \\ dt()) do
     with bf = bondsf(sf, cf),
          sp = sf |> sreduce(gd(gu)),
-         bp = bf |> bondsp(r, dt),
-         hr = sf |> htops(bf) |> sfratios(cf) do
-      callp(sp, bp, hr)
+         bp = bf |> bondsp(r, dt) do
+      sf
+      |> htops(bf)
+      |> sfratios(cf)
+      |> callp(sp, bp)
     end
   end
 
   # callnode/5
   # present value of call option
   @doc """
-        iex> [51.1, 66.8, 87.4, 114.3, 149.5, 195.5] |> Options.European.callnode([0.0, 0.0, 0.0, 14.3, 49.5, 95.5], 1.14, 0.07, 0.25)
+        iex> [0.0, 0.0, 0.0, 14.3, 49.5, 95.5] |> Options.European.callnode([51.1, 66.8, 87.4, 114.3, 149.5, 195.5], 1.14, 0.07, 0.25)
         [17.61075364545998]
   """
-  def callnode(sf, cf, gu \\ gu(), r \\ r(), dt \\ dt()) do
-    with gd = gd(gu),
-         sp = sreduce(sf, gd),
-         bf = bondsf(sf, cf),
+
+  def callnode(cf, sf, gu \\ gu(), r \\ r(), dt \\ dt())
+
+  def callnode(cf, [sfd, sfu], gu, r, dt) do
+    with bf = bondsf([sfd, sfu], cf),
          bp = bondsp(bf, r, dt),
-         ht = htops(sf, bf),
-         hr = sfratios(ht, cf) do
-      if length(sf) == 2 do
-        callp(sp, bp, hr)
-      else
-        cp = callagain(sf, cf, gu, r, dt)
-        callnode(sp, cp, gu, r, dt)
-      end
+         sp = sreduce([sfd, sfu], gd(gu)) do
+      [sfd, sfu]
+      |> htops(bf)
+      |> sfratios(cf)
+      |> callp(sp, bp)
+    end
+  end
+
+  def callnode(cf, sf, gu, r, dt) do
+    with sp = sreduce(sf, gd(gu)) do
+      callagain(sf, cf, gu, r, dt)
+      |> callnode(sp, gu, r, dt)
     end
   end
 
