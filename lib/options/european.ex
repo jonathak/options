@@ -85,11 +85,10 @@ defmodule Options.European do
         [65.0, 65.00000000000003, 65.0, 57.3, 0.0, 0.0]
   """
   def bondsf(sfl, cfl) do
-    with sfpairs = sfl |> U.pairs(),
-         cfpairs = cfl |> U.pairs(),
-         combined = Enum.zip([sfpairs, cfpairs]) do
-      combined |> Enum.map(&bfhelper(&1))
-    end
+    sfl
+    |> U.pairs()
+    |> Enum.zip(U.pairs(cfl))
+    |> Enum.map(&bfhelper(&1))
   end
 
   def bfhelper({[_, _], [x, x]}), do: 0.0
