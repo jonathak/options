@@ -142,9 +142,8 @@ defmodule Options.European do
         [0.0, 0.0, 153.84615384615384]
   """
   def callp(sp, bp, hr) do
-    with combined = Enum.zip([sp, bp, hr]) do
-      combined |> Enum.map(&cphelper(&1))
-    end
+    Enum.zip([sp, bp, hr])
+      |> Enum.map(&cphelper(&1))
   end
 
   def cphelper({_sp, _bp, 0.0}), do: 0.0
