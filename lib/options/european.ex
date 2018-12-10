@@ -13,7 +13,7 @@ defmodule Options.European do
   def vol(x \\ 0.3), do: x
 
   # time to maturity (years)
-  def t(x \\ 40/365), do: x
+  def t(x \\ 40 / 365), do: x
 
   # granularity of binomial tree (levels)
   def levels(x \\ 5), do: x
@@ -79,7 +79,7 @@ defmodule Options.European do
   end
 
   # bondsf/2
-	# future value of bonds for hedge
+  # future value of bonds for hedge
   @doc """
         iex> [167.7, 128.2, 98.0, 75.0, 57.3, 43.8, 33.5] |> Options.European.bondsf([102.7, 63.2, 33.0, 10.0, 0.0, 0.0, 0.0])
         [65.0, 65.00000000000003, 65.0, 57.3, 0.0, 0.0]
@@ -96,7 +96,7 @@ defmodule Options.European do
   def bfhelper({[sfu, sfd], [cfu, cfd]}), do: (cfu * sfd - sfu * cfd) / (cfu - cfd)
 
   # bondsp/3
-	# discounted bonds
+  # discounted bonds
   @doc """
         iex> [167.7, 128.2, 98.0, 75.0, 57.3, 43.8, 33.5] |> Options.European.bondsp(0.06, 0.50)
         [162.74371597608481, 124.41111740091874, 95.10366228775379, 72.78341501613811, 55.606529072329515, 42.50551436942465, 32.50992537387502]
@@ -106,37 +106,38 @@ defmodule Options.European do
   end
 
   # htops/2
-	# future value(s) of hedged portfolio
+  # future value(s) of hedged portfolio
   @doc """
         iex> [167.7, 128.2, 98.0, 75.0, 57.3, 43.8, 33.5] |> Options.European.htops([102.7, 63.2, 33.0, 10.0, 0.0, 0.0, 0.0])
         [25.499999999999986, 34.8, 42.0, 47.3, 43.8, 33.5]
   """
   def htops(sfl, bfl) do
-    sfl |> List.delete_at(0)
-        |> Enum.zip(bfl)
-        |> Enum.map(&htpshelper(&1))
+    sfl
+    |> List.delete_at(0)
+    |> Enum.zip(bfl)
+    |> Enum.map(&htpshelper(&1))
   end
-	
-	def htpshelper({x, y}), do: x - y
+
+  def htpshelper({x, y}), do: x - y
 
   # sfratios/2
-	# ratios for adjusting hedged portfolios to call future values
+  # ratios for adjusting hedged portfolios to call future values
   @doc """
         iex> [25.5, 34.8, 41.9, 47.3, 43.8, 33.5] |> Options.European.sfratios([102.7, 63.2, 33.0, 10.0, 0.0, 0.0, 0.0])
         [0.40348101265822783, 1.0545454545454545, 4.1899999999999995, 0.0, 0.0, 0.0]
   """
   def sfratios(htops, cfl) do
-    with ctops = cfl |> List.delete_at(0),
-         combined = Enum.zip([htops, ctops]) do
-      combined |> Enum.map(&sfrhelper(&1))
-    end
+    cfl
+    |> List.delete_at(0)
+    |> Enum.zip(htops)
+    |> Enum.map(&sfrhelper(&1))
   end
 
-  def sfrhelper({_x, 0.0}), do: 0.0
-  def sfrhelper({x, y}), do: x / y
+  def sfrhelper({0.0, _}), do: 0.0
+  def sfrhelper({x, y}), do: y / x
 
   # callp/3
-	# call values back one layer
+  # call values back one layer
   @doc """
         iex> [50.0, 100.0, 200.0] |> Options.European.callp([50.0, 100.0, 100.0], [0.6, 0.55, 0.65])
         [0.0, 0.0, 153.84615384615384]
@@ -151,14 +152,14 @@ defmodule Options.European do
   def cphelper({sp, bp, hr}), do: (sp - bp) / hr
 
   # callagain/5
-	# valuing call prices back one layer
+  # valuing call prices back one layer
   @doc """
         iex> [167.7, 128.2, 98.0, 75.0, 57.3, 43.8, 33.5] |> Options.European.callagain([102.7, 63.2, 33.0, 10.0, 0.0, 0.0, 0.0], 1.1, 0.04, 0.23)
         [52.140712161874546, 24.686166707329086, 3.7770757982381724, 0.0, 0.0, 0.0]
   """
   def callagain(sf, cf, gu \\ gu(), r \\ r(), dt \\ dt()) do
     with bf = bondsf(sf, cf),
-				 sp = sf |> sreduce(gd(gu)),
+         sp = sf |> sreduce(gd(gu)),
          bp = bf |> bondsp(r, dt),
          hr = sf |> htops(bf) |> sfratios(cf) do
       callp(sp, bp, hr)
@@ -166,7 +167,7 @@ defmodule Options.European do
   end
 
   # callnode/5
-	# present value of call option
+  # present value of call option
   @doc """
         iex> [51.1, 66.8, 87.4, 114.3, 149.5, 195.5] |> Options.European.callnode([0.0, 0.0, 0.0, 14.3, 49.5, 95.5], 1.14, 0.07, 0.25)
         [17.61075364545998]
