@@ -13,16 +13,16 @@ defmodule Options.European do
   def vol(x \\ 0.3), do: x
 
   # time to maturity (years)
-  def t(x \\ 1.0), do: x
+  def t(x \\ 40/365), do: x
 
   # granularity of binomial tree (levels)
   def levels(x \\ 5), do: x
 
   # strike price
-  def k(x \\ 100.0), do: x
+  def k(x \\ 40.0), do: x
 
   # stock price present value
-  def s(x \\ 100.0), do: x
+  def s(x \\ 45.0), do: x
 
   # annual risk free rate continuous compounding
   def r(x \\ 0.05), do: x
@@ -112,11 +112,12 @@ defmodule Options.European do
         [25.499999999999986, 34.8, 42.0, 47.3, 43.8, 33.5]
   """
   def htops(sfl, bfl) do
-    with stops = sfl |> List.delete_at(0),
-         combined = Enum.zip([stops, bfl]) do
-      combined |> Enum.map(&(elem(&1, 0) - elem(&1, 1)))
-    end
+    sfl |> List.delete_at(0)
+        |> Enum.zip(bfl)
+        |> Enum.map(&htpshelper(&1))
   end
+	
+	def htpshelper({x, y}), do: x - y
 
   # sfratios/2
 	# ratios for adjusting hedged portfolios to call future values
@@ -156,12 +157,10 @@ defmodule Options.European do
         [52.140712161874546, 24.686166707329086, 3.7770757982381724, 0.0, 0.0, 0.0]
   """
   def callagain(sf, cf, gu \\ gu(), r \\ r(), dt \\ dt()) do
-    with gd = gd(gu),
-         sp = sreduce(sf, gd),
-         bf = bondsf(sf, cf),
-         bp = bondsp(bf, r, dt),
-         ht = htops(sf, bf),
-         hr = sfratios(ht, cf) do
+    with bf = bondsf(sf, cf),
+				 sp = sf |> sreduce(gd(gu)),
+         bp = bf |> bondsp(r, dt),
+         hr = sf |> htops(bf) |> sfratios(cf) do
       callp(sp, bp, hr)
     end
   end
