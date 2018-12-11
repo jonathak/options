@@ -32,7 +32,7 @@ defmodule Options.European do
   def start(s, k, v, t, r, n) do
     IO.puts("")
     IO.puts("For: s=#{s}, k=#{k}, vol=#{v}, t=#{t}, r=#{r}, levels=#{n}")
-		answer = simplecall(s, k, v, t, n, r)
+    answer = simplecall(s, k, v, t, n, r)
     IO.puts("Value of call option is: #{answer}")
     IO.puts("")
   end
