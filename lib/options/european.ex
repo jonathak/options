@@ -54,30 +54,30 @@ defmodule Options.European do
 
   @doc """
        simplecall\6
-	     stock price, strike price, annual volatility, time yrs, levels, risk-free rate
+      stock price, strike price, annual volatility, time yrs, levels, risk-free rate
        iex> Options.European.simplecall(100.0, 125.0, 0.5, 1.0, 5, 0.06)
        12.627410465807767
   """
-	def simplecall(s \\ s(), k \\ k(), v \\ vol(), t \\ t(), n \\ levels(), r \\ r()) do
-		with dt = t/n,
-		     gu = U.voltorate(v, dt),
-				 s = leaves(s, gu, n),
-				 c = cleaves(s, k) do
-		  callnode(c, s, gu, r, dt)
-	  end
-	end
-	
+  def simplecall(s \\ s(), k \\ k(), v \\ vol(), t \\ t(), n \\ levels(), r \\ r()) do
+    with dt = t / n,
+         gu = U.voltorate(v, dt),
+         sf = leaves(s, gu, n) do
+      sf
+      |> cleaves(k)
+      |> callnode(sf, gu, r, dt)
+    end
+  end
 
   @doc """
-	     leaves/3
+      leaves/3
        creates the end of the tree
        iex> Options.European.leaves(75.0, 0.8, 6)
        [286.102294921875, 183.10546875000003, 117.18750000000006, 75.00000000000004, 48.00000000000004, 30.720000000000027, 19.660800000000023]
   """
   def leaves(s \\ s(), gu \\ gu(), levels \\ levels()) do
-    with bottom = s * :math.pow(gd(gu), levels)  do
+    with bottom = s * :math.pow(gd(gu), levels) do
       0..levels
-      |> Enum.map(&(bottom * :math.pow(gu*gu, &1)))
+      |> Enum.map(&(bottom * :math.pow(gu * gu, &1)))
     end
   end
 
@@ -91,7 +91,6 @@ defmodule Options.European do
     sleaves
     |> Enum.map(&max(&1 - k, 0.0))
   end
-
 
   @doc """
         bondsf/2
@@ -109,7 +108,6 @@ defmodule Options.European do
   def bfhelper({[_, _], [x, x]}), do: 0.0
   def bfhelper({[sfu, sfd], [cfu, cfd]}), do: (cfu * sfd - sfu * cfd) / (cfu - cfd)
 
-
   @doc """
         bondsp/3
         discounted bonds
@@ -119,7 +117,6 @@ defmodule Options.European do
   def bondsp(bf, r \\ r(), dt \\ dt()) do
     bf |> Enum.map(&(&1 * :math.exp(-r * dt)))
   end
-
 
   @doc """
         htops/2
@@ -135,7 +132,6 @@ defmodule Options.European do
   end
 
   defp htpshelper({x, y}), do: x - y
-
 
   @doc """
         sfratios/2
@@ -153,7 +149,6 @@ defmodule Options.European do
   defp sfrhelper({0.0, _}), do: 0.0
   defp sfrhelper({x, y}), do: y / x
 
-
   @doc """
         callp/3
         call values back one layer
@@ -167,7 +162,6 @@ defmodule Options.European do
 
   defp cphelper({_sp, _bp, 0.0}), do: 0.0
   defp cphelper({sp, bp, hr}), do: (sp - bp) / hr
-
 
   @doc """
         callagain/5
@@ -186,7 +180,6 @@ defmodule Options.European do
     end
   end
 
-
   @doc """
         callnode/5
         present value of call option
@@ -203,7 +196,7 @@ defmodule Options.European do
       |> htops(bf)
       |> sfratios(cf)
       |> callp(sp, bp)
-			|> hd()
+      |> hd()
     end
   end
 
@@ -213,7 +206,6 @@ defmodule Options.European do
       |> callnode(sp, gu, r, dt)
     end
   end
-
 
   @doc """
       dt/2
@@ -225,7 +217,6 @@ defmodule Options.European do
     t / l
   end
 
-
   @doc """
       gu/2
       up growth rate given volatility and duration of time step
@@ -236,7 +227,6 @@ defmodule Options.European do
     U.voltorate(v, dt)
   end
 
-
   @doc """
       gd/1
       down growth rate given up growth rate for symetric tree
@@ -246,7 +236,6 @@ defmodule Options.European do
   def gd(gu \\ gu()) do
     1.0 / gu
   end
-
 
   @doc """
       reduce/2
@@ -259,7 +248,6 @@ defmodule Options.European do
     |> List.delete_at(0)
     |> Enum.map(&(&1 * gd))
   end
-
 
   @doc """
       clist/2
