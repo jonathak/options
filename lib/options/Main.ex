@@ -1,8 +1,8 @@
 defmodule Options.Main do
-	alias Options.Utils, as: U
-	alias Options.European, as: E
 	
   def start() do
-	  E.start()
+		IO.puts ""
+	  IO.puts "Use 'Mix european' to get the value of a Eurpoean call option."
+		IO.puts ""
   end
 end

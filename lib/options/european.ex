@@ -29,10 +29,11 @@ defmodule Options.European do
   ### start() used during development ###
   #######################################
 
-  def start() do
+  def start(s, k, v, t, r, n) do
     IO.puts("")
-    IO.puts("For: s=#{s()}, k=#{k()}, vol=#{vol()}, t=#{t()}, r=#{r()}, levels=#{levels()}")
-    IO.puts("Value of call option is: #{simplecall()}")
+    IO.puts("For: s=#{s}, k=#{k}, vol=#{v}, t=#{t}, r=#{r}, levels=#{n}")
+		answer = simplecall(s, k, v, t, n, r)
+    IO.puts("Value of call option is: #{answer}")
     IO.puts("")
   end
 
@@ -229,7 +230,7 @@ defmodule Options.European do
       1.1435804413868396
   """
   def gu(v \\ vol(), dt \\ dt()) do
-    U.voltorate(v, dt)
+    voltorate(v, dt)
   end
 
   @doc """

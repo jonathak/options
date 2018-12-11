@@ -1,4 +1,4 @@
-defmodule Options.Utils do
+defmodule Options.Depreciated do
   @moduledoc """
   Various functions for evaluating call options using binomial method.
   """
@@ -11,7 +11,7 @@ defmodule Options.Utils do
   end
 
   @doc """
-      iex> Options.Utils.split(100, 2.0)
+      iex> Options.Depreciated.split(100, 2.0)
       [50.0, 200.0]
   """
   # split/2
@@ -21,7 +21,7 @@ defmodule Options.Utils do
   end
 
   @doc """
-      iex> Options.Utils.split(100, 2.0, 0.5)
+      iex> Options.Depreciated.split(100, 2.0, 0.5)
       [50.0, 200.0]
   """
   # split/3
@@ -29,7 +29,7 @@ defmodule Options.Utils do
   def split(s, gu, gd), do: [s * gd, s * gu]
 
   @doc """
-      iex> Options.Utils.revsplit([0.125, 0.5], 2.0, 0.5)
+      iex> Options.Depreciated.revsplit([0.125, 0.5], 2.0, 0.5)
       0.25
   """
   # revsplit/3
@@ -46,7 +46,7 @@ defmodule Options.Utils do
   end
 
   @doc """
-      iex> Options.Utils.revsplit([0.125, 0.5], 2.0)
+      iex> Options.Depreciated.revsplit([0.125, 0.5], 2.0)
       0.25
   """
   # revsplit/2
@@ -56,7 +56,7 @@ defmodule Options.Utils do
   end
 
   @doc """
-      iex> Options.Utils.bondp(100, 0.05, 1.0)
+      iex> Options.Depreciated.bondp(100, 0.05, 1.0)
       95.1229424500714
   """
   # bondp/3
@@ -64,7 +64,7 @@ defmodule Options.Utils do
   def bondp(bf, r, dt), do: bf * :math.exp(-r * dt)
 
   @doc """
-      iex> Options.Utils.callf([50, 200], 100)
+      iex> Options.Depreciated.callf([50, 200], 100)
       [0, 100]
   """
   # callf/2
@@ -72,12 +72,12 @@ defmodule Options.Utils do
   def callf([sd, su], ex), do: [max(0, sd - ex), max(0, su - ex)]
 
   @doc """
-      iex> Options.Utils.bondf([50, 200], [50, 200])
+      iex> Options.Depreciated.bondf([50, 200], [50, 200])
       0
   """
 
   @doc """
-      iex> [50.0, 200.0] |> Options.Utils.expand(2.0, 0.5)
+      iex> [50.0, 200.0] |> Options.Depreciated.expand(2.0, 0.5)
       [[25.0, 100.0], [100.0, 400.0]]
   """
   # expand/1
@@ -91,7 +91,7 @@ defmodule Options.Utils do
   end
 
   @doc """
-      iex> Options.Utils.spread(100.0, 2, 2.0, 0.5)
+      iex> Options.Depreciated.spread(100.0, 2, 2.0, 0.5)
       [25.0, 100.0, 400.0]
   """
   # spread/2
@@ -109,7 +109,7 @@ defmodule Options.Utils do
   end
 
   @doc """
-      iex> Options.Utils.myuniq([100.0, 200.0, 200.01, 200.3, 300.0])
+      iex> Options.Depreciated.myuniq([100.0, 200.0, 200.01, 200.3, 300.0])
       [100.0, 200.0, 300.0]
   """
   # myuniq/1
@@ -129,7 +129,7 @@ defmodule Options.Utils do
   end
 
   @doc """
-      iex> Options.Utils.shave(200.0, [200.0, 200.01, 200.3, 300.0])
+      iex> Options.Depreciated.shave(200.0, [200.0, 200.01, 200.3, 300.0])
       [300.0]
   """
   # shave/2
@@ -143,7 +143,7 @@ defmodule Options.Utils do
   end
 
   @doc """
-      iex> [1,2,3,4,5] |> Options.Utils.pairs()
+      iex> [1,2,3,4,5] |> Options.Depreciated.pairs()
       [[1,2], [2,3], [3,4], [4,5]]
   """
   # splits a future price distribution into ordered pairs
@@ -156,7 +156,7 @@ defmodule Options.Utils do
   end
 
   @doc """
-      iex> [0.125, 0.5, 0.5, 2.0, 0.5, 2.0, 2.0, 8.0] |> Options.Utils.calldist(1.0)
+      iex> [0.125, 0.5, 0.5, 2.0, 0.5, 2.0, 2.0, 8.0] |> Options.Depreciated.calldist(1.0)
       [0.0, 0.0, 0.0, 1.0, 0.0, 1.0, 1.0, 7.0]
   """
   # calldist/2
