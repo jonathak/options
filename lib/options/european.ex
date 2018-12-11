@@ -1,6 +1,4 @@
 defmodule Options.European do
-  alias Options.Utils, as: U
-
   @moduledoc """
   Functions for evaluating European call options.
   """
@@ -13,10 +11,10 @@ defmodule Options.European do
   def vol(x \\ 0.3), do: x
 
   # time to maturity (years)
-  def t(x \\ 40 / 365), do: x
+  def t(x \\ 365 / 365), do: x
 
   # granularity of binomial tree (levels)
-  def levels(x \\ 5), do: x
+  def levels(x \\ 50), do: x
 
   # strike price
   def k(x \\ 40.0), do: x
@@ -31,7 +29,14 @@ defmodule Options.European do
   ### start() used during development ###
   #######################################
 
-  def start do
+  def start() do
+    IO.puts("")
+    IO.puts("For: s=#{s()}, k=#{k()}, vol=#{vol()}, t=#{t()}, r=#{r()}, levels=#{levels()}")
+    IO.puts("Value of call option is: #{simplecall()}")
+    IO.puts("")
+  end
+
+  def test_convergence() do
     25..84
     |> Enum.map(&callvalue(&1))
     |> Enum.chunk_every(10)
@@ -53,14 +58,14 @@ defmodule Options.European do
   ###############
 
   @doc """
-       simplecall\6
-      stock price, strike price, annual volatility, time yrs, levels, risk-free rate
+       simplecall/6
+       stock price, strike price, annual volatility, time yrs, levels, risk-free rate
        iex> Options.European.simplecall(100.0, 125.0, 0.5, 1.0, 5, 0.06)
        12.627410465807767
   """
   def simplecall(s \\ s(), k \\ k(), v \\ vol(), t \\ t(), n \\ levels(), r \\ r()) do
-    with dt = t / n,
-         gu = U.voltorate(v, dt),
+    with dt = dt(t, n),
+         gu = voltorate(v, dt),
          sf = leaves(s, gu, n) do
       sf
       |> cleaves(k)
@@ -100,8 +105,8 @@ defmodule Options.European do
   """
   def bondsf(sfl, cfl) do
     sfl
-    |> U.pairs()
-    |> Enum.zip(U.pairs(cfl))
+    |> pairs()
+    |> Enum.zip(pairs(cfl))
     |> Enum.map(&bfhelper(&1))
   end
 
@@ -236,6 +241,20 @@ defmodule Options.European do
   def gd(gu \\ gu()) do
     1.0 / gu
   end
+
+  # annual volatility to growth rate per delta-t in years
+  def voltorate(volatility, dt) do
+    (volatility * :math.sqrt(dt))
+    |> :math.exp()
+  end
+
+  @doc """
+      iex> [1,2,3,4,5] |> Options.European.pairs()
+      [[1,2], [2,3], [3,4], [4,5]]
+  """
+  # splits a future price distribution into ordered pairs
+  def pairs([d, u]), do: [[d, u]]
+  def pairs(dist), do: [[hd(dist), hd(tl(dist))] | pairs(tl(dist))]
 
   @doc """
       reduce/2
