@@ -45,31 +45,45 @@ defmodule Options.European do
     sl = leaves(s(), gu, n)
     cl = cleaves(sl)
     r = r()
-    callnode(cl, sl, gu, r, dt) |> hd()
+    callnode(cl, sl, gu, r, dt)
   end
 
   ###############
   ### library ###
   ###############
 
-  # leaves/3
-  # creates the end of the tree
   @doc """
+       simplecall\6
+	     stock price, strike price, annual volatility, time yrs, levels, risk-free rate
+       iex> Options.European.simplecall(100.0, 125.0, 0.5, 1.0, 5, 0.06)
+       12.627410465807767
+  """
+	def simplecall(s \\ s(), k \\ k(), v \\ vol(), t \\ t(), n \\ levels(), r \\ r()) do
+		with dt = t/n,
+		     gu = U.voltorate(v, dt),
+				 s = leaves(s, gu, n),
+				 c = cleaves(s, k) do
+		  callnode(c, s, gu, r, dt)
+	  end
+	end
+	
+
+  @doc """
+	     leaves/3
+       creates the end of the tree
        iex> Options.European.leaves(75.0, 0.8, 6)
        [286.102294921875, 183.10546875000003, 117.18750000000006, 75.00000000000004, 48.00000000000004, 30.720000000000027, 19.660800000000023]
   """
   def leaves(s \\ s(), gu \\ gu(), levels \\ levels()) do
-    with gd = gd(gu),
-         bottom = s * :math.pow(gd, levels),
-         multiplier = gu * gu do
+    with bottom = s * :math.pow(gd(gu), levels)  do
       0..levels
-      |> Enum.map(&(bottom * :math.pow(multiplier, &1)))
+      |> Enum.map(&(bottom * :math.pow(gu*gu, &1)))
     end
   end
 
-  # cleaves/2
-  # creates the end of the tree
   @doc """
+      cleaves/2
+      creates the end of the tree
       iex> [167.7, 128.2, 98.0, 75.0, 57.3, 43.8, 33.5] |> Options.European.cleaves(65.0)
       [102.69999999999999, 63.19999999999999, 33.0, 10.0, 0.0, 0.0, 0.0]
   """
@@ -78,9 +92,10 @@ defmodule Options.European do
     |> Enum.map(&max(&1 - k, 0.0))
   end
 
-  # bondsf/2
-  # future value of bonds for hedge
+
   @doc """
+        bondsf/2
+        future value of bonds for hedge
         iex> [167.7, 128.2, 98.0, 75.0, 57.3, 43.8, 33.5] |> Options.European.bondsf([102.7, 63.2, 33.0, 10.0, 0.0, 0.0, 0.0])
         [65.0, 65.00000000000003, 65.0, 57.3, 0.0, 0.0]
   """
@@ -94,9 +109,10 @@ defmodule Options.European do
   def bfhelper({[_, _], [x, x]}), do: 0.0
   def bfhelper({[sfu, sfd], [cfu, cfd]}), do: (cfu * sfd - sfu * cfd) / (cfu - cfd)
 
-  # bondsp/3
-  # discounted bonds
+
   @doc """
+        bondsp/3
+        discounted bonds
         iex> [167.7, 128.2, 98.0, 75.0, 57.3, 43.8, 33.5] |> Options.European.bondsp(0.06, 0.50)
         [162.74371597608481, 124.41111740091874, 95.10366228775379, 72.78341501613811, 55.606529072329515, 42.50551436942465, 32.50992537387502]
   """
@@ -104,9 +120,10 @@ defmodule Options.European do
     bf |> Enum.map(&(&1 * :math.exp(-r * dt)))
   end
 
-  # htops/2
-  # future value(s) of hedged portfolio
+
   @doc """
+        htops/2
+        future value(s) of hedged portfolio
         iex> [167.7, 128.2, 98.0, 75.0, 57.3, 43.8, 33.5] |> Options.European.htops([102.7, 63.2, 33.0, 10.0, 0.0, 0.0, 0.0])
         [25.499999999999986, 34.8, 42.0, 47.3, 43.8, 33.5]
   """
@@ -117,11 +134,12 @@ defmodule Options.European do
     |> Enum.map(&htpshelper(&1))
   end
 
-  def htpshelper({x, y}), do: x - y
+  defp htpshelper({x, y}), do: x - y
 
-  # sfratios/2
-  # ratios for adjusting hedged portfolios to call future values
+
   @doc """
+        sfratios/2
+        ratios for adjusting hedged portfolios to call future values
         iex> [25.5, 34.8, 41.9, 47.3, 43.8, 33.5] |> Options.European.sfratios([102.7, 63.2, 33.0, 10.0, 0.0, 0.0, 0.0])
         [0.40348101265822783, 1.0545454545454545, 4.1899999999999995, 0.0, 0.0, 0.0]
   """
@@ -132,12 +150,13 @@ defmodule Options.European do
     |> Enum.map(&sfrhelper(&1))
   end
 
-  def sfrhelper({0.0, _}), do: 0.0
-  def sfrhelper({x, y}), do: y / x
+  defp sfrhelper({0.0, _}), do: 0.0
+  defp sfrhelper({x, y}), do: y / x
 
-  # callp/3
-  # call values back one layer
+
   @doc """
+        callp/3
+        call values back one layer
         iex> [0.6, 0.55, 0.65] |> Options.European.callp([50.0, 100.0, 200.0], [50.0, 100.0, 100.0])
         [0.0, 0.0, 153.84615384615384]
   """
@@ -146,12 +165,13 @@ defmodule Options.European do
     |> Enum.map(&cphelper(&1))
   end
 
-  def cphelper({_sp, _bp, 0.0}), do: 0.0
-  def cphelper({sp, bp, hr}), do: (sp - bp) / hr
+  defp cphelper({_sp, _bp, 0.0}), do: 0.0
+  defp cphelper({sp, bp, hr}), do: (sp - bp) / hr
 
-  # callagain/5
-  # valuing call prices back one layer
+
   @doc """
+        callagain/5
+        valuing call prices back one layer
         iex> [167.7, 128.2, 98.0, 75.0, 57.3, 43.8, 33.5] |> Options.European.callagain([102.7, 63.2, 33.0, 10.0, 0.0, 0.0, 0.0], 1.1, 0.04, 0.23)
         [52.140712161874546, 24.686166707329086, 3.7770757982381724, 0.0, 0.0, 0.0]
   """
@@ -166,13 +186,13 @@ defmodule Options.European do
     end
   end
 
-  # callnode/5
-  # present value of call option
-  @doc """
-        iex> [0.0, 0.0, 0.0, 14.3, 49.5, 95.5] |> Options.European.callnode([51.1, 66.8, 87.4, 114.3, 149.5, 195.5], 1.14, 0.07, 0.25)
-        [17.61075364545998]
-  """
 
+  @doc """
+        callnode/5
+        present value of call option
+        iex> [0.0, 0.0, 0.0, 14.3, 49.5, 95.5] |> Options.European.callnode([51.1, 66.8, 87.4, 114.3, 149.5, 195.5], 1.14, 0.07, 0.25)
+        17.61075364545998
+  """
   def callnode(cf, sf, gu \\ gu(), r \\ r(), dt \\ dt())
 
   def callnode(cf, [sfd, sfu], gu, r, dt) do
@@ -183,6 +203,7 @@ defmodule Options.European do
       |> htops(bf)
       |> sfratios(cf)
       |> callp(sp, bp)
+			|> hd()
     end
   end
 
@@ -193,9 +214,10 @@ defmodule Options.European do
     end
   end
 
-  # dt/2
-  # duration of time step given number of levels and time to maturity
+
   @doc """
+      dt/2
+      duration of time step given number of levels and time to maturity
       iex> Options.European.dt(1.0, 5)
       0.2
   """
@@ -203,9 +225,10 @@ defmodule Options.European do
     t / l
   end
 
-  # gu/2
-  # up growth rate given volatility and duration of time step
+
   @doc """
+      gu/2
+      up growth rate given volatility and duration of time step
       iex> Options.European.gu(0.3, 0.2)
       1.1435804413868396
   """
@@ -213,9 +236,10 @@ defmodule Options.European do
     U.voltorate(v, dt)
   end
 
-  # gd/1
-  # down growth rate given up growth rate for symetric tree
+
   @doc """
+      gd/1
+      down growth rate given up growth rate for symetric tree
       iex> Options.European.gd(2.0)
       0.5
   """
@@ -223,9 +247,10 @@ defmodule Options.European do
     1.0 / gu
   end
 
-  # reduce/2
-  # steps stock price list down binomial tree by single layer
+
   @doc """
+      reduce/2
+      steps stock price list down binomial tree by single layer
       iex> [0.25, 1.0, 4.0] |> Options.European.sreduce(0.5)
       [0.5, 2.0]
   """
@@ -235,9 +260,10 @@ defmodule Options.European do
     |> Enum.map(&(&1 * gd))
   end
 
-  # clist/2
-  # provides call option values at end of binomial tree
+
   @doc """
+      clist/2
+      provides call option values at end of binomial tree
       iex> [0.25, 1.0, 4.0] |> Options.European.clist(0.5)
       [0.0, 0.5, 3.5]
   """
